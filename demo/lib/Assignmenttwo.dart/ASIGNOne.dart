@@ -93,10 +93,6 @@ class RevealRoute extends PageRouteBuilder {
   final Offset centerOffset;
   final double minRadius;
   final double maxRadius;
-
-  /// You can provide [centerAlignment] for the reveal center or if you want a
-  /// more precise use only [centerOffset] and leave other blank.
-  /// The transition doesn't affect the entry screen so we will only touch
   RevealRoute(
       {@required this.page,
       this.minRadius = 0,
@@ -164,27 +160,3 @@ class CircularRevealClipper extends CustomClipper<Path> {
     return sqrt(w * w + h * h);
   }
 }
-// class ScaleRoute extends PageRouteBuilder {
-//   final Widget page;
-//   ScaleRoute({this.page})
-//       : super(
-//             pageBuilder: (BuildContext context, Animation<double> animation,
-//                     Animation<double> secondaryAnimation) =>
-//                 page,
-//             transitionsBuilder: (BuildContext context,
-//                     Animation<double> animation,
-//                     Animation<double> secondaryAnimation,
-//                     Widget child) =>
-//                 FadeTransition(opacity: animation, child: child));
-// }
-
-//     ScaleTransition(
-//   scale: Tween<double>(
-//     begin: 0.0,
-//     end: 1.0,
-//   ).animate(
-//     CurvedAnimation(
-//         parent: animation, curve: Curves.bounceInOut),
-//   ),
-//   child: child,
-// ),
