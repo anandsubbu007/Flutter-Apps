@@ -1,200 +1,292 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:rxdart/subjects.dart';
 
-final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
-final BehaviorSubject<String> selectNotificationSubject =
-    BehaviorSubject<String>();
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final NotificationAppLaunchDetails notificationAppLaunchDetails =
-      await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
-  const AndroidInitializationSettings initializationSettingsAndroid =
-      AndroidInitializationSettings('app_icon');
-  final InitializationSettings initializationSettings =
-      InitializationSettings(android: initializationSettingsAndroid);
-  await flutterLocalNotificationsPlugin.initialize(
-    initializationSettings,
-    onSelectNotification: (String payload) async {
-      if (payload != null) {
-        debugPrint('notification payload: $payload');
-      }
-      selectNotificationSubject.add(payload);
-    },
-  );
-  runApp(MyApp(notificationAppLaunchDetails));
+void main() {
+  runApp(MaterialApp(home: MyApp()));
+  // runApp(MyApps());
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp(this.notificationAppLaunchDetails, {Key key}) : super(key: key);
+  MyApp({Key key}) : super(key: key);
 
-  final NotificationAppLaunchDetails notificationAppLaunchDetails;
-  bool get didNotificationLaunchApp =>
-      notificationAppLaunchDetails?.didNotificationLaunchApp ?? false;
   @override
-  State<StatefulWidget> createState() {
-    return _MyAppState();
-  }
+  _MyAppState createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
-  String _message = '';
-  String token;
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
-
-  _register() async {
-    token = token ?? await _firebaseMessaging.getToken();
-  }
-
   @override
   void initState() {
+    fetchdata(0);
     super.initState();
-    _configureSelectNotificationSubject();
-    getMessage();
   }
 
-  Future<void> _showNotification(String title, String body) async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-        AndroidNotificationDetails(
-            'your channel id', 'your channel name', 'your channel description',
-            importance: Importance.max,
-            priority: Priority.high,
-            ticker: 'ticker');
-    const NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
-    await flutterLocalNotificationsPlugin.show(0, title ?? 'plain title',
-        body ?? 'plain body', platformChannelSpecifics,
-        payload: 'Tap');
-  }
-
-  bool isinitial = false;
-  void _configureSelectNotificationSubject() {
-    selectNotificationSubject.stream.listen((String payload) async {
-      print('Selected Notification $payload');
-      if (isinitial) {
-        if (payload == 'Tap') {
-          _key.currentState.showSnackBar(SnackBar(
-            content: Text('You Taped Notification From Firebase'),
-          ));
-          // ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          //   content: Text('You Taped Notification From Firebase'),
-          // ));
-        }
+  Map req = {
+    "fld_action_type": 0,
+    "fld_brand_id": "0",
+    "cart_total": 0,
+    "fld_cat_id": 216,
+    "fld_search_txt": "",
+    "fld_total_page": 0,
+    "fld_user_id": "159",
+    "grid_list_view": 0,
+    "fld_max_price": 0,
+    "fld_min_price": 0,
+    "next_page": 0,
+    "fld_page_no": 0,
+    "fld_pincode": 0,
+    "fld_spcl_price": 0,
+    "fld_product_price": 0,
+    "fld_product_qty": 0,
+    "shipping_total": 0,
+    "statusCode": 0,
+    "total_seller_count": 0
+  };
+  List<Model> models = [];
+  int totalpage = 100;
+  int nextpg = 1;
+  bool isended = false;
+  Future<bool> fetchdata(int page) async {
+    if ((totalpage ?? 2) > page) {
+      req['next_page'] = page;
+      curntpg = page;
+      http.Response responce = await http.post(
+        'https://phaukat.com/api/product',
+        body: json.encode(req),
+      );
+      var map = json.decode(responce.body);
+      if (responce.statusCode == 200) {
+        List values = map['product_data'];
+        totalpage = map['fld_total_page'];
+        nextpg = map['next_page'];
+        values.forEach((e) {
+          models.add(Model.fromMap(e));
+        });
+        isloading = false;
+        setState(() {});
+        return true;
       } else {
-        isinitial = true;
+        isloading = false;
+        return false;
       }
-    });
+    } else {
+      isloading = false;
+      isended = true;
+      setState(() {});
+      return false;
+    }
   }
 
-  String serverToken =
-      'AAAA-abOnps:APA91bG1Oz79suDtUGyY-NV_m6_YiomMcUfQ49_JS5Afj6v2jCHOgyhh8iY1POs1MWfeWwLUpbIZxcXpSg7EkgOpcASOJlDyUMKcsBvf01PnscG3Jq3sTLaK-Y5KF7xrUaltoVnNvYYE';
-  final FirebaseMessaging firebaseMessaging = FirebaseMessaging();
-
-  Future sendAndRetrieveMessage() async {
-    token = token ?? await _firebaseMessaging.getToken();
-    http.Response resp = await http.post(
-      'https://fcm.googleapis.com/fcm/send',
-      headers: <String, String>{
-        'Content-Type': 'application/json',
-        'Authorization': 'key=$serverToken',
-      },
-      body: jsonEncode(
-        <String, dynamic>{
-          'notification': <String, dynamic>{
-            'title': 'Hi There, I\'m Anand',
-            'body': '${_control.text ?? 'No Message Is Written'}'
-          },
-          'priority': 'high',
-          'data': <String, dynamic>{
-            'click_action': 'FLUTTER_NOTIFICATION_CLICK',
-            'id': '1',
-            'status': 'done'
-          },
-          'to': token
-        },
-      ),
-    );
-    print('Responce : ${resp.body}');
-    responce = resp.body;
-    // ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-    //   content: Text('FB Responce :: $responce'),
-    // ));
-    _key.currentState.showSnackBar(SnackBar(
-      content: Text('FB Responce :: $responce'),
-    ));
+  int curntpg = 0;
+  bool isloading = true;
+  Widget card(Model model) {
+    bool isfav = model.isinwish.toUpperCase() != 'FALSE';
+    return Card(
+        margin: EdgeInsets.all(3),
+        child: Container(
+          padding: EdgeInsets.all(7),
+          child: Column(
+            children: [
+              Expanded(
+                child: Image.network(
+                  model.image,
+                  width: double.infinity,
+                ),
+              ),
+              Row(
+                children: [
+                  Expanded(child: Text(model.name)),
+                  IconButton(
+                      padding: EdgeInsets.all(5),
+                      color: isfav ? Colors.red : Colors.grey,
+                      icon:
+                          Icon(isfav ? Icons.favorite : Icons.favorite_border),
+                      onPressed: () {})
+                ],
+              ),
+              Row(
+                children: [
+                  Text('₹${model.price}'),
+                  Spacer(),
+                  Text('₹${model.extraprice}',
+                      style: TextStyle(
+                          decoration: TextDecoration.lineThrough,
+                          fontSize: 13)),
+                  Spacer(),
+                  Text('-${model.spclprice}% Off',
+                      style: TextStyle(color: Colors.red)),
+                ],
+              ),
+            ],
+          ),
+        ));
   }
 
-  final GlobalKey<ScaffoldState> _key = new GlobalKey<ScaffoldState>();
-  String responce;
-  void getMessage() {
-    _firebaseMessaging.configure(
-      onMessage: (Map<String, dynamic> message) async {
-        print('on message $message');
-        _showNotification(
-            message["notification"]["title"], message["notification"]["body"]);
-        setState(() => _message = message["notification"]["title"]);
-      },
-      onResume: (Map<String, dynamic> message) async {
-        print('on resume $message');
-        setState(() => _message = message["notification"]["title"]);
-      },
-      onLaunch: (Map<String, dynamic> message) async {
-        print('on launch $message');
-        setState(() => _message = message["notification"]["title"]);
-      },
-    );
-  }
-
-  TextEditingController _control = TextEditingController();
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        key: _key,
-        appBar: AppBar(title: Text('Firebase Push')),
-        body: Center(
-          child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Text("Message: $_message"),
-                SizedBox(height: 10),
-                Container(
-                  padding: EdgeInsets.fromLTRB(20, 10, 20, 10),
-                  child: TextField(
-                    controller: _control,
-                    decoration: InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Write Something'),
-                  ),
-                ),
-                SizedBox(height: 10),
-                RaisedButton(
-                    child: Text('Get Notification'),
-                    onPressed: () async {
-                      await sendAndRetrieveMessage();
-                    })
-              ]),
-        ),
+    return Scaffold(
+      appBar: AppBar(title: Text('DEMO')),
+      body: isloading ? Center(child: CircularProgressIndicator()) : body(),
+    );
+  }
+
+  Widget body() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      child: GridViewPagination(
+        childAspectRatio: 3 / 5,
+        itemBuilder: (c, i) {
+          return card(models[i]);
+        },
+        itemCount: models.length,
+        onNextPage: (pg) async {
+          return fetchdata(pg);
+        },
       ),
     );
   }
 }
-// final Completer<Map<String, dynamic>> completer =
-//     Completer<Map<String, dynamic>>();
 
-// firebaseMessaging.configure(
-//   onMessage: (Map<String, dynamic> message) async {
-//     completer.complete(message);
-//   },
-// );
-// return completer.future;
-// getMessage();
+typedef Future<bool> OnNextPage(int nextPage);
+
+class GridViewPagination extends StatefulWidget {
+  final int itemCount;
+  final double childAspectRatio;
+  final OnNextPage onNextPage;
+  final Function(BuildContext context, int position) itemBuilder;
+  final Widget Function(BuildContext context) progressBuilder;
+
+  GridViewPagination({
+    this.itemCount,
+    this.childAspectRatio,
+    this.itemBuilder,
+    this.onNextPage,
+    this.progressBuilder,
+  });
+
+  @override
+  _GridViewPaginationState createState() => _GridViewPaginationState();
+}
+
+class _GridViewPaginationState extends State<GridViewPagination> {
+  int currentPage = 1;
+  bool isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return NotificationListener<ScrollNotification>(
+      onNotification: (ScrollNotification sn) {
+        if (!isLoading &&
+            sn is ScrollUpdateNotification &&
+            sn.metrics.pixels == sn.metrics.maxScrollExtent) {
+          setState(() {
+            this.isLoading = true;
+          });
+          widget.onNextPage?.call(currentPage++)?.then((bool isLoaded) {
+            setState(() {
+              this.isLoading = false;
+            });
+          });
+        }
+        return true;
+      },
+      child: CustomScrollView(
+        slivers: <Widget>[
+          SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisSpacing: 1,
+              mainAxisSpacing: 1,
+              crossAxisCount: 2,
+              childAspectRatio: widget.childAspectRatio,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              widget.itemBuilder,
+              childCount: widget.itemCount,
+              addAutomaticKeepAlives: true,
+              addRepaintBoundaries: true,
+              addSemanticIndexes: true,
+            ),
+          ),
+          if (isLoading)
+            SliverToBoxAdapter(
+              child: widget.progressBuilder?.call(context) ?? _defaultLoading(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _defaultLoading() {
+    return Container(
+      padding: EdgeInsets.all(15),
+      alignment: Alignment.center,
+      child: CircularProgressIndicator(),
+    );
+  }
+}
+
+class Model {
+  String id;
+  String catid;
+  String sex;
+  String color;
+  String size;
+  String extraprice;
+  String name;
+  String price;
+  String spclprice;
+  String image;
+  String gif;
+  String rat;
+  String ratcount;
+  String reviewcount;
+  String isinwish;
+  Model({
+    this.id,
+    this.catid,
+    this.sex,
+    this.color,
+    this.size,
+    this.extraprice,
+    this.name,
+    this.price,
+    this.spclprice,
+    this.image,
+    this.gif,
+    this.rat,
+    this.ratcount,
+    this.reviewcount,
+    this.isinwish,
+  });
+
+  factory Model.fromMap(map) {
+    if (map == null) return null;
+    return Model(
+      id: map['id'].toString(),
+      catid: map['cat_id'].toString(),
+      sex: map['unisex_type'].toString(),
+      color: map['color_id'].toString(),
+      size: map['size_id'].toString(),
+      extraprice: map['extra_price'].toString(),
+      name: map['name'].toString(),
+      price: map['price'].toString(),
+      spclprice: map['spcl_price'].toString(),
+      image: map['default_image'].toString(),
+      gif: map['gif_image'].toString(),
+      rat: map['fld_total_rating'].toString(),
+      ratcount: map['fld_rating_count'].toString(),
+      reviewcount: map['fld_review_count'].toString(),
+      isinwish: map['isInWishlist'].toString(),
+    );
+  }
+
+  factory Model.fromJson(String source) => Model.fromMap(json.decode(source));
+
+  @override
+  String toString() {
+    return 'Model(id: $id, catid: $catid, sex: $sex, color: $color, size: $size, extraprice: $extraprice, name: $name, price: $price, spclprice: $spclprice, image: $image, gif: $gif, rat: $rat, ratcount: $ratcount, reviewcount: $reviewcount, isinwish: $isinwish)';
+  }
+}
