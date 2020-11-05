@@ -17,6 +17,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  bool isswap = false;
   @override
   void initState() {
     fetchdata(0);
@@ -128,7 +129,15 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('DEMO')),
-      body: isloading ? Center(child: CircularProgressIndicator()) : body(),
+      body: isswap
+          ? SwapVariable()
+          : (isloading ? Center(child: CircularProgressIndicator()) : body()),
+      floatingActionButton: FloatingActionButton(
+        child: Icon(Icons.swap_horiz),
+        onPressed: () => setState(() {
+          isswap = !isswap;
+        }),
+      ),
     );
   }
 
@@ -287,6 +296,72 @@ class Model {
 
   @override
   String toString() {
-    return 'Model(id: $id, catid: $catid, sex: $sex, color: $color, size: $size, extraprice: $extraprice, name: $name, price: $price, spclprice: $spclprice, image: $image, gif: $gif, rat: $rat, ratcount: $ratcount, reviewcount: $reviewcount, isinwish: $isinwish)';
+    return 'Model(id: $id, catid: $catid, sex: $sex, color: $color, size: $size,'
+        ' extraprice: $extraprice, name: $name, price: $price, spclprice: $spclprice, image: $image, '
+        'gif: $gif, rat: $rat, ratcount: $ratcount, reviewcount: $reviewcount, isinwish: $isinwish)';
+  }
+}
+
+class SwapVariable extends StatefulWidget {
+  SwapVariable({Key key}) : super(key: key);
+
+  @override
+  _SwapVariableState createState() => _SwapVariableState();
+}
+
+class _SwapVariableState extends State<SwapVariable> {
+  int a = 5;
+  int b = 10;
+
+  void swap() {
+    a = a + b;
+    b = a - b;
+    a = a - b;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+        alignment: Alignment.center,
+        child: Container(
+          width: 150,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 50,
+                    child: Text(' A'),
+                    alignment: Alignment.centerLeft,
+                  ),
+                  Text(':'),
+                  Text(' $a'),
+                ],
+              ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                      width: 50,
+                      child: Text(' B'),
+                      alignment: Alignment.centerLeft),
+                  Text(':'),
+                  Text(' $b'),
+                ],
+              ),
+              SizedBox(height: 15),
+              RaisedButton(
+                child: Text('Swap Variable'),
+                onPressed: () => setState(() {
+                  swap();
+                }),
+              )
+            ],
+          ),
+        ));
   }
 }
